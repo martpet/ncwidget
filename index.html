@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <script type="module">
+      import ncwidget from "./ncwidget.module.js";
+
+      ncwidget({
+        container: document.getElementById("widget"),
+        stations: [
+          { x: 0, y: 0, reach: 9 },
+          { x: 20, y: 20, reach: 6 },
+          { x: 10, y: 0, reach: 12 },
+          { x: 5, y: 5, reach: 13 },
+          { x: 99, y: 25, reach: 2 },
+        ],
+        devices: [
+          { x: 0, y: 0 },
+          { x: 100, y: 100 },
+          { x: 15, y: 10 },
+          { x: 18, y: 18 },
+          { x: 13, y: 13 },
+          { x: 25, y: 99 },
+        ],
+      });
+    </script>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+      }
+      #widget {
+        width: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="widget"></div>
+  </body>
+</html>
