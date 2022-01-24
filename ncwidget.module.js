@@ -14,14 +14,15 @@ const MAX_ALLOWED_PLOT_POINT = 1000;
 const PLOT_BG_COLOR = "#000000";
 const MARKER_DIAM_PX = 16;
 const MARKER_RADI_PX = MARKER_DIAM_PX / 2;
-const MARKER_BORDER_PX = 1;
+const MARKER_BRD_PX = 1;
 const MARKER_BGCOLOR = "#b0c4de";
 const MARKER_TXTCOLOR = "#000000";
 const STATION_TXTCOLOR = "#7fffd4";
 const STATION_TXTCOLOR_DIM = dim(STATION_TXTCOLOR);
 const STATION_BGCOLOR = dim("#008000");
 const STATION_RING_COLOR = dim(STATION_TXTCOLOR, 0.3);
-const DEVICE_ACTIVE_BRDCOLOR = "#ffffff";
+const DEVICE_АCTIVE_BG_COLOR = "#f5f5f5";
+const DEVICE_BG_COLOR = dim(DEVICE_АCTIVE_BG_COLOR);
 const BUTTON_REMOVE_TXTCOLOR = "#ff6347";
 
 const AppContext = createContext();
@@ -251,7 +252,7 @@ function StationMarker({ index, style }) {
     style=${`
       background: ${STATION_BGCOLOR};
       color: ${reach ? STATION_TXTCOLOR : STATION_TXTCOLOR_DIM};
-      ${hasConnections && `box-shadow: 0 0 0 ${MARKER_BORDER_PX}px`};
+      ${hasConnections && `box-shadow: 0 0 0 ${MARKER_BRD_PX}px`};
       ${style}
     `}
   />`;
@@ -259,11 +260,14 @@ function StationMarker({ index, style }) {
 
 function DeviceMarker({ index }) {
   const { connections } = useContext(AppContext);
-  const speed = connections.devices[index]?.speed;
+  const isConnected = connections.devices[index];
+  const hasSpeed = Boolean(connections.devices[index]?.speed);
   return html`<${Marker}
     label=${index + 1}
     style=${`
-      ${speed && `box-shadow: 0 0 0 2px ${DEVICE_ACTIVE_BRDCOLOR}`};
+      background: ${DEVICE_BG_COLOR};
+      ${isConnected && `box-shadow: 0 0 0 2px ${DEVICE_АCTIVE_BG_COLOR}`};
+      ${hasSpeed && `background: ${DEVICE_АCTIVE_BG_COLOR};`};
     `}
   />`;
 }
@@ -320,7 +324,7 @@ function Graph({ style }) {
   return html`<div
     style=${`
       overflow: hidden;
-      padding: ${MARKER_RADI_PX + MARKER_BORDER_PX}px;
+      padding: ${MARKER_RADI_PX + MARKER_BRD_PX}px;
       background: ${PLOT_BG_COLOR};
       ${style}
     `}
