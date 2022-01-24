@@ -11,31 +11,31 @@ import {
 
 const MIN_PLOT_LENGTH_PT = 20;
 const MAX_ALLOWED_PLOT_POINT = 1000;
-const PLOT_BGCOLOR = "#000000";
+const PLOT_BG_COLOR = "#000000";
 const MARKER_DIAM_PX = 16;
-const MARKER_BORDER_PX = 1;
 const MARKER_RADI_PX = MARKER_DIAM_PX / 2;
+const MARKER_BORDER_PX = 1;
 const MARKER_BGCOLOR = "#b0c4de";
 const MARKER_TXTCOLOR = "#000000";
-const REACH_TXTCOLOR = dim("#ffffff");
 const STATION_TXTCOLOR = "#7fffd4";
 const STATION_TXTCOLOR_DIM = dim(STATION_TXTCOLOR);
 const STATION_BGCOLOR = dim("#008000");
 const STATION_RING_COLOR = dim(STATION_TXTCOLOR, 0.3);
-const DEVICE_ACTIVE_BORDER_COLOR = "#ffffff";
+const DEVICE_ACTIVE_BRDCOLOR = "#ffffff";
 const BUTTON_REMOVE_TXTCOLOR = "#ff6347";
 
 const AppContext = createContext();
 
-export default function ({ container, stations, devices }) {
-  render(
-    html`
-      <${AppProvider} stations=${stations} devices=${devices}>
-        <${App} />
-      <//>
-    `,
-    container
-  );
+export default function ({ container, ...props }) {
+  render(html`<${Main} ...${props} //>`, container);
+}
+
+export function Main(props) {
+  return html`
+    <${AppProvider} ...${props}>
+      <${App} />
+    <//>
+  `;
 }
 
 function AppProvider({ stations: initialStations, devices: initialDevices, children }) {
@@ -43,7 +43,7 @@ function AppProvider({ stations: initialStations, devices: initialDevices, child
   const [devices, setDevices] = useState(initialDevices);
   const [plotLengthPx, setPlotLengthPx] = useState();
 
-  const maxPlotPoint = useMemo(
+  const maxPoint = useMemo(
     () =>
       Math.max(
         ...stations
@@ -55,20 +55,20 @@ function AppProvider({ stations: initialStations, devices: initialDevices, child
     [stations, devices]
   );
 
-  if (maxPlotPoint > MAX_ALLOWED_PLOT_POINT) {
+  if (maxPoint > MAX_ALLOWED_PLOT_POINT) {
     throw new RangeError(
-      `[NCWidget] Maximum point is "${MAX_ALLOWED_PLOT_POINT}" but you provided "${maxPlotPoint}"`
+      `[NCWidget] Maximum point is "${MAX_ALLOWED_PLOT_POINT}" but you provided "${maxPoint}"`
     );
   }
 
-  const connectionsInfo = useMemo(() => {
+  const connections = useMemo(() => {
     const data = {
       stations: {},
       devices: {},
     };
     devices.forEach((device, deviceIndex) => {
       const speeds = stations.map((station) =>
-        getConnectionSpeed(getDistance(device, station), station.reach)
+        getSpeed(getDistance(device, station), station.reach)
       );
       const isInRange = speeds.some((s) => s !== null);
       if (isInRange) {
@@ -87,8 +87,8 @@ function AppProvider({ stations: initialStations, devices: initialDevices, child
     setStations,
     devices,
     setDevices,
-    connectionsInfo,
-    maxPlotPoint,
+    connections,
+    maxPoint,
     plotLengthPx,
     setPlotLengthPx,
   };
@@ -96,7 +96,7 @@ function AppProvider({ stations: initialStations, devices: initialDevices, child
 }
 
 function App() {
-  const { stations, setStations, devices, setDevices, connectionsInfo } = useContext(AppContext);
+  const { stations, setStations, devices, setDevices, connections } = useContext(AppContext);
   const stationsState = [stations, setStations];
   const devicesState = [devices, setDevices];
 
@@ -126,11 +126,12 @@ function App() {
             html`<${DeviceMarker} index=${i} />`,
             html`<${Control} prop="x" state=${devicesState} index=${i} />`,
             html`<${Control} prop="y" state=${devicesState} index=${i} />`,
-            connectionsInfo.devices[i]?.speed,
-            html`<${StationMarker}
-              index=${connectionsInfo.devices[i]?.stationIndex}
-              style="display: inline-flex"
-            />`,
+            connections.devices[i]?.speed,
+            connections.devices[i] &&
+              html`<${StationMarker}
+                index=${connections.devices[i].stationIndex}
+                style="display: inline-flex"
+              />`,
             html`<${ButtonRemove} state=${devicesState} index=${i} />`,
           ])}
         />
@@ -242,9 +243,8 @@ function Marker({ label, style }) {
 }
 
 function StationMarker({ index, style }) {
-  if (index === undefined) return null;
-  const { stations, connectionsInfo } = useContext(AppContext);
-  const hasConnections = Boolean(connectionsInfo.stations[index]?.length);
+  const { stations, connections } = useContext(AppContext);
+  const hasConnections = Boolean(connections.stations[index]?.length);
   const { reach } = stations[index];
   return html`<${Marker}
     label=${index + 1}
@@ -258,41 +258,40 @@ function StationMarker({ index, style }) {
 }
 
 function DeviceMarker({ index }) {
-  const { connectionsInfo } = useContext(AppContext);
-  const speed = connectionsInfo.devices[index]?.speed;
+  const { connections } = useContext(AppContext);
+  const speed = connections.devices[index]?.speed;
   return html`<${Marker}
     label=${index + 1}
     style=${`
-      ${speed && `box-shadow: 0 0 0 2px ${DEVICE_ACTIVE_BORDER_COLOR}`};
+      ${speed && `box-shadow: 0 0 0 2px ${DEVICE_ACTIVE_BRDCOLOR}`};
     `}
   />`;
 }
 
 function ReachMarker({ reach, style, children }) {
-  const { maxPlotPoint, plotLengthPx } = useContext(AppContext);
+  const { maxPoint, plotLengthPx } = useContext(AppContext);
   if (!plotLengthPx) return null;
   return html`<div
     style=${`
-    colorTXTEACH_RING_COLOR};
-    box-shadow: 0 0 0 ${(reach / maxPlotPoint) * plotLengthPx}px;
-    border-radius: 50%;
-    ${style}
-  `}
+      box-shadow: 0 0 0 ${(reach / maxPoint) * plotLengthPx}px;
+      border-radius: 50%;
+      ${style}
+    `}
   >
     ${children}
   </div>`;
 }
 
-function DeviceReachMarker({ reach, children }) {
+function StationReachMarker({ reach, children }) {
   return html`<${ReachMarker} reach=${reach} style=${`color: ${STATION_RING_COLOR}`}>
     ${children}
   <//>`;
 }
 
 function Plotter({ x, y, style, children }) {
-  const { maxPlotPoint } = useContext(AppContext);
-  const leftPerc = (x / maxPlotPoint) * 100;
-  const topPerc = (y / maxPlotPoint) * 100;
+  const { maxPoint } = useContext(AppContext);
+  const leftPerc = (x / maxPoint) * 100;
+  const topPerc = (y / maxPoint) * 100;
   return html`<div
     style=${`
       position: absolute;
@@ -306,15 +305,15 @@ function Plotter({ x, y, style, children }) {
 }
 
 function Graph({ style }) {
-  const { stations, devices, plotLengthPx, maxPlotPoint, setPlotLengthPx } = useContext(AppContext);
+  const { stations, devices, setPlotLengthPx } = useContext(AppContext);
   const plotRef = useRef();
 
   useEffect(() => {
-    const saveWidth = () => setPlotLengthPx(plotRef.current.clientWidth);
-    saveWidth();
-    window.addEventListener("resize", saveWidth);
+    const storeLength = () => setPlotLengthPx(plotRef.current.clientWidth);
+    storeLength();
+    window.addEventListener("resize", storeLength);
     return () => {
-      removeEventListener("resize", saveWidth);
+      removeEventListener("resize", storeLength);
     };
   }, []);
 
@@ -322,7 +321,7 @@ function Graph({ style }) {
     style=${`
       overflow: hidden;
       padding: ${MARKER_RADI_PX + MARKER_BORDER_PX}px;
-      background: ${PLOT_BGCOLOR};
+      background: ${PLOT_BG_COLOR};
       ${style}
     `}
   >
@@ -336,7 +335,7 @@ function Graph({ style }) {
       ${stations.map(
         ({ x, y, reach }, i) =>
           html`<${Plotter} x=${x} y=${y} style="z-index: 2;">
-            <${DeviceReachMarker} reach=${reach}>
+            <${StationReachMarker} reach=${reach}>
               <${StationMarker} index=${i} />
             <//>
           <//>`
@@ -367,7 +366,7 @@ function getDistance(a, b) {
   return Math.hypot(dx, dy);
 }
 
-function getConnectionSpeed(distance, reach) {
+function getSpeed(distance, reach) {
   if (distance > reach) return null;
   return Math.round(Math.pow(reach - distance, 2));
 }
